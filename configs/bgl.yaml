@@ -1,0 +1,70 @@
+# LAnoBERT — BGL (main configuration)
+# From-scratch custom-vocab BERT, MLM-only, batch 32 / lr 1e-4.
+# This is the headline ("our method") setup; batch/model ablations live in
+# configs/ablations/.
+dataset: BGL
+run_name: bgl
+
+paths:
+  raw_log: data/BGL/BGL.log              # full raw log (from loghub)
+  # split outputs (raw, produced by lanobert.split)
+  train_raw: data/BGL/BGL_train_normal.raw
+  test_raw: data/BGL/BGL_test.raw
+  test_label: data/BGL/BGL_test_label.log
+  # preprocessed (normalized) outputs
+  train_normal: data/BGL/BGL_train_normal_parsed.log
+  test_log: data/BGL/BGL_test_parsed.log
+  tokenizer_dir: outputs/BGL/tokenizer
+  model_dir: outputs/BGL/model
+  result_dir: outputs/BGL/results
+
+split:
+  method: line            # BGL is a line-ordered stream
+  train_ratio: 0.8        # first 80% chronologically -> train region
+  label_marker: "-"       # first token "-" => normal, else anomaly
+
+preprocess:
+  regex_profile: bgl   # faithful port of reference preprocess_bgl.py
+  mask_block_id: true
+  mask_ip: true
+  mask_number: true
+  drop_header_fields: 3
+
+tokenizer:
+  vocab_size: 1000
+  min_frequency: 2
+  lowercase: false
+
+train:
+  max_len: 512
+  mlm_probability: 0.20
+  num_train_epochs: 10
+  per_device_train_batch_size: 32
+  learning_rate: 1.0e-4
+  weight_decay: 0.01
+  warmup_ratio: 0.1
+  save_steps: 50000
+  save_total_limit: 2
+  logging_steps: 1000
+  seed: 42
+
+inference:
+  # --- released checkpoint (no training needed) -------------------------
+  # Uncomment to score with the published model from the HuggingFace Hub
+  # (single repo, per-dataset subfolders). Leaving hf_model null uses the
+  # locally trained model at paths.model_dir instead.
+  #   hf_model: yukyung/LAnoBERT
+  #   hf_subfolder: bgl
+  hf_model: null
+  hf_subfolder: null
+  # --- scoring ----------------------------------------------------------
+  score: error_mean   # RECOMMENDED balanced method: mean of per-word CE over the
+                      # line (length-adaptive). run() also emits error/prob/probtopk
+                      # top-k sweep + error_pctl99/prob_* for comparison.
+  top_k: 5
+  top_ks: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+  batch_size: 16
+  max_eval_samples: null
+  # training-free baseline: set to an HF model id (e.g. "bert-base-uncased")
+  # to skip training and score with an off-the-shelf LM. null = use trained model.
+  pretrained_model: null

@@ -1,0 +1,28 @@
+# data & artifacts (too large / not for VCS)
+data/
+!data/.gitkeep
+outputs/
+cache/
+checkpoints/
+*.log
+!**/sample/*.log
+*.out
+*.pkl
+*.bin
+*.pt
+*.model
+cached_*
+
+# python
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.venv/
+venv/
+*.egg-info/
+
+# os
+.DS_Store
+
+# local symlink to scratch storage (user-specific)
+/outputs

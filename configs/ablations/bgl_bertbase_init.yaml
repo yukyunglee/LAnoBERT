@@ -1,0 +1,50 @@
+# LAnoBERT — BGL: BERT-base *architecture* only, random-init weights +
+# log MLM from scratch with bert-base's own 30k vocab.
+dataset: BGL
+run_name: bertbase_init
+
+paths:
+  raw_log: data/BGL/BGL.log
+  train_raw: data/BGL/BGL_train_normal.raw
+  test_raw: data/BGL/BGL_test.raw
+  test_label: data/BGL/BGL_test_label.log
+  train_normal: data/BGL/BGL_train_normal_parsed.log
+  test_log: data/BGL/BGL_test_parsed.log
+  tokenizer_dir: outputs/BGL/tokenizer
+  model_dir: outputs/BGL/bertbase_init/model
+  result_dir: outputs/BGL/bertbase_init/results
+
+split:
+  method: line
+  train_ratio: 0.8
+  label_marker: "-"
+
+preprocess:
+  regex_profile: bgl
+  mask_block_id: true
+  mask_ip: true
+  mask_number: true
+  drop_header_fields: 3
+
+train:
+  base_model: bert-base-uncased
+  warm_start: false
+  max_len: 512
+  mlm_probability: 0.20
+  num_train_epochs: 5
+  per_device_train_batch_size: 32
+  learning_rate: 1.0e-4
+  weight_decay: 0.01
+  warmup_ratio: 0.1
+  save_steps: 50000
+  save_total_limit: 2
+  logging_steps: 1000
+  seed: 42
+
+inference:
+  top_k: 5
+  top_ks: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+  score: error_mean   # RECOMMENDED balanced method: mean of per-word CE over the line (length-adaptive). run() also emits error/prob/probtopk top-k sweep + error_pctl99/prob_* for comparison.
+  batch_size: 16
+  max_eval_samples: null
+  pretrained_model: null

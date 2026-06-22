@@ -1,0 +1,62 @@
+# LAnoBERT — Thunderbird (main configuration)
+# From-scratch custom-vocab BERT, MLM-only, batch 32 / lr 1e-4.
+# Batch/model ablations live in configs/ablations/.
+dataset: Thunderbird
+run_name: thunderbird
+
+paths:
+  raw_log: data/Thunderbird/Thunderbird.log
+  train_raw: data/Thunderbird/Thunderbird_train_normal.raw
+  test_raw: data/Thunderbird/Thunderbird_test.raw
+  test_label: data/Thunderbird/Thunderbird_test_label.log
+  train_normal: data/Thunderbird/Thunderbird_train_normal_parsed.log
+  test_log: data/Thunderbird/Thunderbird_test_parsed.log
+  tokenizer_dir: outputs/Thunderbird/tokenizer
+  model_dir: outputs/Thunderbird/model
+  result_dir: outputs/Thunderbird/results
+
+split:
+  method: line
+  train_ratio: 0.8
+  label_marker: "-"
+
+preprocess:
+  regex_profile: thunderbird
+  mask_block_id: false
+  mask_ip: true
+  mask_number: true
+  drop_header_fields: 0
+
+tokenizer:
+  vocab_size: 10000
+  min_frequency: 2
+  lowercase: false
+
+train:
+  max_len: 512
+  mlm_probability: 0.20
+  num_train_epochs: 10
+  per_device_train_batch_size: 32
+  learning_rate: 1.0e-4
+  weight_decay: 0.01
+  warmup_ratio: 0.1
+  save_steps: 50000
+  save_total_limit: 2
+  logging_steps: 1000
+  seed: 42
+
+inference:
+  # --- released checkpoint (no training needed) -------------------------
+  #   hf_model: yukyung/LAnoBERT
+  #   hf_subfolder: thunderbird
+  hf_model: null
+  hf_subfolder: null
+  # --- scoring ----------------------------------------------------------
+  score: error_mean   # RECOMMENDED balanced method: mean of per-word CE over the
+                      # line (length-adaptive). run() also emits error/prob/probtopk
+                      # top-k sweep + error_pctl99/prob_* for comparison.
+  top_k: 5
+  top_ks: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+  batch_size: 16
+  max_eval_samples: null
+  pretrained_model: null

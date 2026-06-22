@@ -1,0 +1,66 @@
+# LAnoBERT — HDFS (main configuration)
+# From-scratch custom-vocab BERT, MLM-only, batch 32 / lr 1e-4.
+# HDFS test lines are block-aggregated (avg ~245 words, up to ~3900), so the
+# length-adaptive score `error_mean` matters most here (fixed top-k underrates
+# short normal blocks). Batch/model ablations live in configs/ablations/.
+dataset: HDFS
+run_name: hdfs
+
+paths:
+  raw_log: data/HDFS/HDFS.log
+  test_label_csv: data/HDFS/anomaly_label.csv
+  train_raw: data/HDFS/HDFS_train_normal.raw
+  test_raw: data/HDFS/HDFS_test.raw
+  test_label: data/HDFS/HDFS_test_label.log
+  train_normal: data/HDFS/HDFS_train_normal_parsed.log
+  test_log: data/HDFS/HDFS_test_parsed.log
+  tokenizer_dir: outputs/HDFS/tokenizer
+  model_dir: outputs/HDFS/model
+  result_dir: outputs/HDFS/results
+
+split:
+  method: block
+  train_ratio: 0.8
+  block_id_regex: "blk_-?\\d+"
+  label_csv: data/HDFS/anomaly_label.csv
+
+preprocess:
+  regex_profile: hdfs   # faithful port of reference preprocess.py (HDFS)
+  mask_block_id: true
+  mask_ip: true
+  mask_number: true
+  drop_header_fields: 0   # reference HDFS corpus keeps all tokens
+
+tokenizer:
+  vocab_size: 200
+  min_frequency: 2
+  lowercase: false
+
+train:
+  max_len: 512
+  mlm_probability: 0.20
+  num_train_epochs: 10
+  per_device_train_batch_size: 32
+  learning_rate: 1.0e-4
+  weight_decay: 0.01
+  warmup_ratio: 0.1
+  save_steps: 50000
+  save_total_limit: 2
+  logging_steps: 1000
+  seed: 42
+
+inference:
+  # --- released checkpoint (no training needed) -------------------------
+  #   hf_model: yukyung/LAnoBERT
+  #   hf_subfolder: hdfs
+  hf_model: null
+  hf_subfolder: null
+  # --- scoring ----------------------------------------------------------
+  score: error_mean   # RECOMMENDED balanced method: mean of per-word CE over the
+                      # line (length-adaptive). run() also emits error/prob/probtopk
+                      # top-k sweep + error_pctl99/prob_* for comparison.
+  top_k: 5
+  top_ks: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+  batch_size: 16
+  max_eval_samples: null
+  pretrained_model: null
